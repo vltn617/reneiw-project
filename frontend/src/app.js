@@ -1,12 +1,21 @@
-# Python
-__pycache__/
-*.py[cod]
-venv/
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import DiscussionDetail from './pages/DiscussionDetail';
 
-# Node (Frontend)
-node_modules/
-dist/
-.env
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/discussion/:id" element={<DiscussionDetail />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
 
-# OS
-.DS_Store
+export default App;
