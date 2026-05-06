@@ -6,9 +6,11 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
+    nickname = Column(String, unique=True, index=True, nullable=True) # 닉네임 추가
     hashed_password = Column(String)
-    is_admin = Column(Boolean, default=False) # 관리자 여부
+    is_admin = Column(Boolean, default=False)
     reputation = Column(Float, default=10.0)
+    # ... (기존 relationship 유지)
 
     posts = relationship("Post", back_populates="author")
     comments = relationship("Comment", back_populates="author")

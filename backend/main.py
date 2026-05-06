@@ -54,24 +54,35 @@ class CommentCreate(BaseModel):
 
 @app.post("/signup")
 def signup(user: UserCreate, db: Session = Depends(database.get_db)):
-    try:
-        db_user = db.query(models.User).filter(models.User.username == user.username).first()
-        if db_user:
-            raise HTTPException(status_code=400, detail="이미 사용 중인 아이디입니다.")
-        
-        # auth.py 내부에서 passlib 이슈가 발생할 수 있으므로 try-except로 감싸서 확인
-        hashed_pw = auth.get_password_hash(user.password)
-        
-        new_user = models.User(
-            username=user.username, 
-            hashed_password=hashed_pw
-        )
-        db.add(new_user)
-        db.commit()
-        return {"status": "success", "message": "회원가입이 완료되었습니다."}
-    except Exception as e:
-        # 에러 발생 시 상세 내용을 로그에 출력
-        print(f"❌ Signup Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    if db.query(models.User).filter(models.User.username == user.username).first():
+        raise HTTPException(status_code=400, detail="아이디가 중복됩니다.")
+    
+    new_user = models.User(
+        username=user.username, 
+        hashed_password=auth.get_password_hash(user.password)
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"id": new_user.id, "status": "success"}
 
-# ... (나머지 엔드포인트 유지)
+@app.post("/set-nickname")
+def set_nickname(user_id: int, nickname: str, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user: raise HTTPException(status_code=404, detail="유저 없음")
+    
+    if db.query(models.User).filter(models.User.nickname == nickname).first():
+        raise HTTPException(status_code=400, detail="이미 존재하는 닉네임입니다.")
+    
+    db_user.nickname = nickname
+    db.commit()
+    return {"message": "Success"}
+
+@app.post("/login")
+def login(user: UserCreate, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+    if not db_user or not auth.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="인증 실패")
+    
+    token = auth.create_access_token({"sub": db_user.username, "id": db_user.id})
+    return {"access_token": token, "nickname": db_user.nickname}
